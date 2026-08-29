@@ -11,6 +11,7 @@ service Arisa {
   rpc MarkRead(MarkReadRequest) returns (google.protobuf.Empty);
   rpc EnterChannel(EnterChannelRequest) returns (google.protobuf.Empty);
   rpc SendMedia(SendMediaRequest) returns (google.protobuf.Empty);
+  rpc SendMediaByChunk(stream SendMediaByChunkRequest) returns (google.protobuf.Empty);
 
   rpc GetUser(GetUserRequest) returns (Member);
   rpc GetUsers(GetUsersRequest) returns (GetUsersResponse);
@@ -55,6 +56,26 @@ message SendMediaRequest {
   int64 channel_id = 1;
   MediaMode mode = 2;
   repeated MediaFile files = 3;
+}
+
+message SendMediaByChunkRequest {
+  oneof payload {
+    SendMediaByChunkMetadata metadata = 1;
+    MediaFileMetadata file_metadata = 2;
+    bytes chunk = 3;
+  }
+}
+
+message SendMediaByChunkMetadata {
+  int64 channel_id = 1;
+  uint32 file_count = 2;
+  MediaMode mode = 3;
+}
+
+message MediaFileMetadata {
+  string file_name = 1;
+  uint64 file_size = 2;
+  string content_type = 3;
 }
 
 message GetUserRequest {

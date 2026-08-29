@@ -1,6 +1,6 @@
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import grpc_tools
 from grpc_tools import protoc
@@ -14,7 +14,6 @@ def main() -> None:
     well_known_types = Path(grpc_tools.__file__).resolve().parent / "_proto"
     executable_dir = Path(sys.executable).parent
     plugin = executable_dir / "protoc-gen-python_betterproto2"
-    os.environ["PATH"] = f"{executable_dir}{os.pathsep}{os.environ.get('PATH', '')}"
 
     result = protoc.main(
         [

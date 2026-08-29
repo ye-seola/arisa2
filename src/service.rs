@@ -13,8 +13,8 @@ use crate::{
         Channel, ChannelMembers, Credential, DecryptRequest, DecryptResponse, EnterChannelRequest,
         Event, GetChannelMembersRequest, GetChannelRequest, GetMessageRequest, GetMessagesRequest,
         GetMessagesResponse, GetUserRequest, GetUsersRequest, GetUsersResponse, MarkReadRequest,
-        MediaMode, Member, RawQueryRequest, RawQueryResponse, ReplyRequest, SendMediaRequest,
-        SubscribeEventsRequest, arisa_server::Arisa,
+        MediaMode, Member, RawQueryRequest, RawQueryResponse, ReplyRequest,
+        SendMediaByChunkRequest, SendMediaRequest, SubscribeEventsRequest, arisa_server::Arisa,
     },
 };
 
@@ -100,6 +100,18 @@ impl Arisa for ArisaService {
             channel_id: request.channel_id,
             files,
             multiple: mode == MediaMode::Multiple,
+        })
+    }
+
+    async fn send_media_by_chunk(
+        &self,
+        request: Request<tonic::Streaming<SendMediaByChunkRequest>>,
+    ) -> Result<Response<()>, Status> {
+        let media = media::store_chunks(&self.temp_dir, request.into_inner()).await?;
+        self.enqueue(Action::SendMedia {
+            channel_id: media.channel_id,
+            files: media.files,
+            multiple: media.multiple,
         })
     }
 

@@ -3,8 +3,10 @@ from __future__ import annotations
 import asyncio
 import inspect
 import json
+import types
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
-from typing import Any, Awaitable, Callable, Literal, Sequence, TypeVar
+from typing import Any, Literal, Self, TypeVar
 
 import betterproto2
 from grpclib.client import Channel
@@ -18,6 +20,8 @@ from airi.media import MediaFilesInput, normalize, read
 
 T = TypeVar("T")
 E = TypeVar("E")
+
+MEDIA_CHUNK_SIZE = 1024 * 1024
 
 
 @dataclass(slots=True)
@@ -38,7 +42,7 @@ class BotClient:
         self._middlewares: list[Middleware] = []
         self._closed = False
 
-    async def __aenter__(self) -> BotClient:
+    async def __aenter__(self) -> Self:
         await self.connect()
         return self
 
@@ -46,7 +50,7 @@ class BotClient:
         self,
         exc_type: type[BaseException] | None,
         exc: BaseException | None,
-        traceback: object | None,
+        traceback: types.TracebackType | None,
     ) -> None:
         await self.close()
 
@@ -173,29 +177,38 @@ class BotClient:
     ) -> None:
         if mode not in {None, "single", "multiple"}:
             raise ValueError("mode must be 'single' or 'multiple'")
+
         items = normalize(file, name=name, mime=mime)
         selected_mode = mode or ("multiple" if len(items) > 1 else "single")
-        files = []
-        for item in items:
-            media = proto.MediaFile(
-                name=item.name,
-                mime=item.mime or "",
-                data=await asyncio.to_thread(read, item),
-            )
-            files.append(media)
-        await self._call(
-            (await self._get_stub()).send_media(
-                proto.SendMediaRequest(
+        media_mode = (
+            proto.MediaMode.MULTIPLE
+            if selected_mode == "multiple"
+            else proto.MediaMode.SINGLE
+        )
+
+        async def requests():
+            yield proto.SendMediaByChunkRequest(
+                metadata=proto.SendMediaByChunkMetadata(
                     channel_id=channel_id,
-                    mode=(
-                        proto.MediaMode.MULTIPLE
-                        if selected_mode == "multiple"
-                        else proto.MediaMode.SINGLE
-                    ),
-                    files=files,
+                    file_count=len(items),
+                    mode=media_mode,
                 )
             )
-        )
+            for item in items:
+                data = await asyncio.to_thread(read, item)
+                yield proto.SendMediaByChunkRequest(
+                    file_metadata=proto.MediaFileMetadata(
+                        file_name=item.name or "",
+                        file_size=len(data),
+                        content_type=item.mime or "",
+                    )
+                )
+                for offset in range(0, len(data), MEDIA_CHUNK_SIZE):
+                    yield proto.SendMediaByChunkRequest(
+                        chunk=data[offset : offset + MEDIA_CHUNK_SIZE]
+                    )
+
+        await self._call((await self._get_stub()).send_media_by_chunk(requests()))
 
     async def get_user(self, channel_id: int, user_id: int) -> proto.Member:
         return await self._call(

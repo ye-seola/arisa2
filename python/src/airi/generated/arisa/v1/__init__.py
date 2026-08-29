@@ -38,6 +38,7 @@ __all__ = (
     "LinkMemberType",
     "MarkReadRequest",
     "MediaFile",
+    "MediaFileMetadata",
     "MediaMode",
     "Member",
     "MessageEvent",
@@ -47,11 +48,13 @@ __all__ = (
     "RawQueryRequest",
     "RawQueryResponse",
     "ReplyRequest",
+    "SendMediaByChunkMetadata",
+    "SendMediaByChunkRequest",
     "SendMediaRequest",
     "SubscribeEventsRequest",
 )
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterable, AsyncIterator, Iterable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -603,6 +606,20 @@ default_message_pool.register_message("arisa.v1", "MediaFile", MediaFile)
 
 
 @dataclass(eq=False, repr=False)
+class MediaFileMetadata(betterproto2.Message):
+    file_name: "str" = betterproto2.field(1, betterproto2.TYPE_STRING)
+
+    file_size: "int" = betterproto2.field(2, betterproto2.TYPE_UINT64)
+
+    content_type: "str" = betterproto2.field(3, betterproto2.TYPE_STRING)
+
+
+default_message_pool.register_message(
+    "arisa.v1", "MediaFileMetadata", MediaFileMetadata
+)
+
+
+@dataclass(eq=False, repr=False)
 class Member(betterproto2.Message):
     id: "int" = betterproto2.field(1, betterproto2.TYPE_INT64)
 
@@ -702,6 +719,49 @@ class ReplyRequest(betterproto2.Message):
 
 
 default_message_pool.register_message("arisa.v1", "ReplyRequest", ReplyRequest)
+
+
+@dataclass(eq=False, repr=False)
+class SendMediaByChunkMetadata(betterproto2.Message):
+    channel_id: "int" = betterproto2.field(1, betterproto2.TYPE_INT64)
+
+    file_count: "int" = betterproto2.field(2, betterproto2.TYPE_UINT32)
+
+    mode: "MediaMode" = betterproto2.field(
+        3, betterproto2.TYPE_ENUM, default_factory=lambda: MediaMode(0)
+    )
+
+
+default_message_pool.register_message(
+    "arisa.v1", "SendMediaByChunkMetadata", SendMediaByChunkMetadata
+)
+
+
+@dataclass(eq=False, repr=False)
+class SendMediaByChunkRequest(betterproto2.Message):
+    """
+
+
+    Oneofs:
+        - payload:
+    """
+
+    metadata: "SendMediaByChunkMetadata | None" = betterproto2.field(
+        1, betterproto2.TYPE_MESSAGE, optional=True, group="payload"
+    )
+
+    file_metadata: "MediaFileMetadata | None" = betterproto2.field(
+        2, betterproto2.TYPE_MESSAGE, optional=True, group="payload"
+    )
+
+    chunk: "bytes | None" = betterproto2.field(
+        3, betterproto2.TYPE_BYTES, optional=True, group="payload"
+    )
+
+
+default_message_pool.register_message(
+    "arisa.v1", "SendMediaByChunkRequest", SendMediaByChunkRequest
+)
 
 
 @dataclass(eq=False, repr=False)
@@ -819,6 +879,25 @@ class ArisaStub(betterproto2_grpclib.ServiceStub):
         return await self._unary_unary(
             "/arisa.v1.Arisa/SendMedia",
             message,
+            __google__protobuf__.Empty,
+            timeout=timeout,
+            deadline=deadline,
+            metadata=metadata,
+        )
+
+    async def send_media_by_chunk(
+        self,
+        messages: "AsyncIterable[SendMediaByChunkRequest] | Iterable[SendMediaByChunkRequest]",
+        *,
+        timeout: "float | None" = None,
+        deadline: "Deadline | None" = None,
+        metadata: "MetadataLike | None" = None,
+    ) -> "__google__protobuf__.Empty":
+
+        return await self._stream_unary(
+            "/arisa.v1.Arisa/SendMediaByChunk",
+            messages,
+            SendMediaByChunkRequest,
             __google__protobuf__.Empty,
             timeout=timeout,
             deadline=deadline,
