@@ -40,7 +40,7 @@ if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; the
     exit 1
 fi
 
-cargo ndk -t arm64-v8a -p 23 build --release --locked
+cargo ndk -t arm64-v8a -t x86_64 --platform 23 build --release --locked
 
 status="$(git status --porcelain --untracked-files=all)"
 if [[ -n "$status" ]]; then
@@ -50,10 +50,12 @@ if [[ -n "$status" ]]; then
 fi
 
 mkdir -p dist
-artifact="dist/arisa-arm64-v8a"
-cp target/aarch64-linux-android/release/arisa "$artifact"
+arm64_artifact="dist/arisa-arm64-v8a"
+x86_64_artifact="dist/arisa-x86_64"
+cp target/aarch64-linux-android/release/arisa "$arm64_artifact"
+cp target/x86_64-linux-android/release/arisa "$x86_64_artifact"
 
-gh release create "$tag" "$artifact" \
+gh release create "$tag" "$arm64_artifact" "$x86_64_artifact" \
     --repo ye-seola/arisa2 \
     --target "$commit" \
     --title "arisa $tag" \
