@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import inspect
 import json
+import traceback
 import types
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
@@ -103,7 +104,10 @@ class BotClient:
                     continue
                 route_context = current._with_event(matched)
                 if await _passes(route.filters, route_context):
-                    await route.handler(route_context)
+                    try:
+                        await route.handler(route_context)
+                    except Exception:  # noqa: BLE001
+                        traceback.print_exc()
 
         next_handler: Next = call_routes
         for middleware in reversed(self._middlewares):
