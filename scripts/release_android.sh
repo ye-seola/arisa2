@@ -55,7 +55,10 @@ x86_64_artifact="dist/arisa-x86_64"
 cp target/aarch64-linux-android/release/arisa "$arm64_artifact"
 cp target/x86_64-linux-android/release/arisa "$x86_64_artifact"
 
-gh release create "$tag" "$arm64_artifact" "$x86_64_artifact" \
+gh release create "$tag" \
+    "$arm64_artifact" \
+    "$x86_64_artifact" \
+    "prebuilts/fileprovider.apk" \
     --repo ye-seola/arisa2 \
     --target "$commit" \
     --title "arisa $tag" \
