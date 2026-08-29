@@ -6,7 +6,7 @@ import json
 import types
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
-from typing import Any, Literal, Self, TypeVar
+from typing import Any, Literal, TypeVar
 
 import betterproto2
 from grpclib.client import Channel
@@ -42,7 +42,7 @@ class BotClient:
         self._middlewares: list[Middleware] = []
         self._closed = False
 
-    async def __aenter__(self) -> Self:
+    async def __aenter__(self) -> BotClient:  # noqa: PYI034
         await self.connect()
         return self
 
