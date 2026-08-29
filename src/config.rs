@@ -15,6 +15,7 @@ pub struct RuntimeConfig {
     pub uid: Option<i32>,
     pub calling_package: String,
     pub db_pull_delay: u64,
+    pub exit_on_stdin_close: bool,
 }
 
 pub fn load() -> RuntimeConfig {
@@ -43,6 +44,7 @@ pub fn load() -> RuntimeConfig {
             .filter(|value| !value.trim().is_empty())
             .unwrap_or_else(|| "com.android.shell".to_string()),
         db_pull_delay: optional_u64("ARISA_DB_PULL_DELAY").unwrap_or(100),
+        exit_on_stdin_close: optional_bool("ARISA_EXIT_ON_STDIN_CLOSE").unwrap_or(true),
     }
 }
 
@@ -57,6 +59,13 @@ fn optional_u64(name: &str) -> Option<u64> {
     env::var(name).ok().and_then(|value| {
         let value = value.trim();
         (!value.is_empty()).then(|| value.parse().expect("invalid integer environment variable"))
+    })
+}
+
+fn optional_bool(name: &str) -> Option<bool> {
+    env::var(name).ok().and_then(|value| {
+        let value = value.trim();
+        (!value.is_empty()).then(|| value.parse().expect("invalid boolean environment variable"))
     })
 }
 

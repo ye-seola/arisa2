@@ -61,9 +61,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .max_decoding_message_size(MAX_GRPC_MESSAGE_BYTES)
                 .max_encoding_message_size(MAX_GRPC_MESSAGE_BYTES),
         )
-        .serve_with_shutdown(address, stdin_closed())
+        .serve_with_shutdown(address, shutdown_signal(config.exit_on_stdin_close))
         .await?;
     Ok(())
+}
+
+async fn shutdown_signal(exit_on_stdin_close: bool) {
+    if exit_on_stdin_close {
+        stdin_closed().await;
+    } else {
+        std::future::pending::<()>().await;
+    }
 }
 
 async fn stdin_closed() {
