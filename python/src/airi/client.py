@@ -58,8 +58,15 @@ class BotClient:
         if self._channel is not None:
             return
         self._closed = False
-        self._channel = Channel(self._host, self._port)
-        self._stub = proto.ArisaStub(self._channel)
+        channel = Channel(self._host, self._port)
+        try:
+            await channel.__connect__()
+        except BaseException:
+            channel.close()
+            raise
+        self._channel = channel
+        self._stub = proto.ArisaStub(channel)
+        print(f"connected to {self.target}")
 
     async def close(self) -> None:
         self._closed = True
