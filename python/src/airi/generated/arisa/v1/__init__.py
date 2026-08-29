@@ -791,6 +791,27 @@ default_message_pool.register_message(
 
 
 class ArisaStub(betterproto2_grpclib.ServiceStub):
+    async def health_check(
+        self,
+        message: "__google__protobuf__.Empty | None" = None,
+        *,
+        timeout: "float | None" = None,
+        deadline: "Deadline | None" = None,
+        metadata: "MetadataLike | None" = None,
+    ) -> "__google__protobuf__.Empty":
+
+        if message is None:
+            message = __google__protobuf__.Empty()
+
+        return await self._unary_unary(
+            "/arisa.v1.Arisa/HealthCheck",
+            message,
+            __google__protobuf__.Empty,
+            timeout=timeout,
+            deadline=deadline,
+            metadata=metadata,
+        )
+
     async def subscribe_events(
         self,
         message: "SubscribeEventsRequest | None" = None,

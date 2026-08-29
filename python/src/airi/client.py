@@ -60,13 +60,14 @@ class BotClient:
             return
         self._closed = False
         channel = Channel(self._host, self._port)
+        stub = proto.ArisaStub(channel)
         try:
-            await channel.__connect__()
+            await stub.health_check()
         except BaseException:
             channel.close()
             raise
         self._channel = channel
-        self._stub = proto.ArisaStub(channel)
+        self._stub = stub
         print(f"connected to {self.target}")
 
     async def close(self) -> None:
@@ -148,6 +149,9 @@ class BotClient:
         stream = stub.subscribe_events()
         async for event in stream:
             await self.dispatch(_unwrap_event(event))
+
+    async def health_check(self) -> None:
+        await self._call((await self._get_stub()).health_check())
 
     async def reply(
         self,

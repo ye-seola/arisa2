@@ -56,6 +56,10 @@ type EventStream = Pin<Box<dyn Stream<Item = Result<Event, Status>> + Send>>;
 impl Arisa for ArisaService {
     type SubscribeEventsStream = EventStream;
 
+    async fn health_check(&self, _: Request<()>) -> Result<Response<()>, Status> {
+        Ok(Response::new(()))
+    }
+
     async fn subscribe_events(
         &self,
         _: Request<SubscribeEventsRequest>,

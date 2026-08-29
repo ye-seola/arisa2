@@ -5,6 +5,7 @@ package arisa.v1;
 import "google/protobuf/empty.proto";
 
 service Arisa {
+  rpc HealthCheck(google.protobuf.Empty) returns (google.protobuf.Empty);
   rpc SubscribeEvents(SubscribeEventsRequest) returns (stream Event);
 
   rpc Reply(ReplyRequest) returns (google.protobuf.Empty);
