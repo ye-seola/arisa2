@@ -22,6 +22,20 @@ pub fn start_poller(database: Database, events: broadcast::Sender<Event>, pull_d
 
             for row in rows {
                 last_database_id = last_database_id.max(row.database_id);
+
+                let metadata: serde_json::Value = row
+                    .metadata
+                    .as_deref()
+                    .and_then(|json| serde_json::from_str(json).ok())
+                    .unwrap_or_default();
+
+                if matches!(
+                    metadata.get("origin").and_then(serde_json::Value::as_str),
+                    Some("SYNCMSG" | "MCHATLOGS")
+                ) {
+                    continue;
+                }
+
                 match database.map_message(row) {
                     Ok(event) => {
                         let _ = events.send(event);
