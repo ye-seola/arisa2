@@ -83,11 +83,32 @@ fn find_app_path(uid: Option<i32>) -> Option<String> {
 }
 
 fn read_notification_referer(app_path: &str) -> Option<String> {
-    let path = format!("{app_path}/shared_prefs/KakaoTalk.hw.perferences.xml");
-    let content = fs::read_to_string(path).ok()?;
-    content
-        .split(r#"<string name="NotificationReferer">"#)
-        .nth(1)
-        .and_then(|value| value.split("</string>").next())
-        .map(str::to_string)
+    let xml_path = format!("{app_path}/shared_prefs/KakaoTalk.hw.perferences.xml");
+    if let Ok(content) = fs::read_to_string(xml_path) {
+        if let Some(referer) = content
+            .split(r#"<string name="NotificationReferer">"#)
+            .nth(1)
+            .and_then(|value| value.split("</string>").next())
+        {
+            return Some(referer.to_string());
+        }
+    }
+
+    let pb_path = format!("{app_path}/files/datastore/Hardware.preferences_pb");
+    let bytes = fs::read(pb_path).ok()?;
+    extract_datastore_string(&bytes, "NotificationReferer")
+}
+
+fn extract_datastore_string(bytes: &[u8], key: &str) -> Option<String> {
+    let key_bytes = key.as_bytes();
+    let pos = bytes
+        .windows(key_bytes.len())
+        .position(|w| w == key_bytes)?;
+    let rest = &bytes[pos + key_bytes.len()..];
+
+    let tag_pos = rest.iter().position(|&b| b == 0x2a)?;
+    let len = *rest.get(tag_pos + 1)? as usize;
+    let start = tag_pos + 2;
+    let end = start.checked_add(len)?;
+    String::from_utf8(rest.get(start..end)?.to_vec()).ok()
 }
